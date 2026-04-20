@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+logs/
+node_modules/
+dist/
+frontend/node_modules/
+frontend/dist/
+backend/.venv/
+.npm

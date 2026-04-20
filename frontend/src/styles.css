@@ -1,0 +1,375 @@
+:root {
+  color-scheme: light;
+  --bg: #f2efe7;
+  --bg-2: #e3ddd1;
+  --card: rgba(255, 255, 255, 0.78);
+  --card-border: rgba(72, 57, 36, 0.12);
+  --text: #201a14;
+  --muted: #6d6254;
+  --accent: #9d4d2e;
+  --accent-2: #184e77;
+  --good: #1f7a4f;
+  --warn: #b86b00;
+  --shadow: 0 20px 60px rgba(37, 28, 19, 0.12);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(157, 77, 46, 0.12), transparent 30%),
+    radial-gradient(circle at top right, rgba(24, 78, 119, 0.12), transparent 28%),
+    linear-gradient(180deg, var(--bg), var(--bg-2));
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.shell {
+  width: min(1280px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 32px 0 48px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 24px;
+  align-items: stretch;
+  margin-bottom: 24px;
+}
+
+.hero-copy,
+.hero-panel,
+.card {
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+}
+
+.hero-copy {
+  border-radius: 28px;
+  padding: 30px;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  max-width: 12ch;
+}
+
+.lede {
+  max-width: 60ch;
+  color: var(--muted);
+  font-size: 1.06rem;
+  margin: 18px 0 0;
+}
+
+.hero-panel {
+  border-radius: 28px;
+  padding: 22px;
+  display: grid;
+  gap: 14px;
+}
+
+.stat {
+  padding: 18px 18px 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.45));
+  border: 1px solid rgba(51, 34, 18, 0.08);
+}
+
+.stat span,
+.subtle,
+.placeholder,
+.hint,
+.doc-foot span,
+.meta-grid span {
+  color: var(--muted);
+}
+
+.stat strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 1.08rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1.05fr 1.35fr;
+  gap: 24px;
+}
+
+.card {
+  border-radius: 24px;
+  padding: 22px;
+}
+
+.composer {
+  position: sticky;
+  top: 18px;
+  height: fit-content;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+textarea,
+select,
+input[type='range'] {
+  width: 100%;
+}
+
+textarea,
+select {
+  margin-top: 8px;
+  border-radius: 16px;
+  border: 1px solid rgba(67, 52, 36, 0.16);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--text);
+}
+
+textarea {
+  padding: 16px;
+  resize: vertical;
+  min-height: 160px;
+}
+
+select {
+  padding: 14px 16px;
+}
+
+input[type='range'] {
+  margin-top: 10px;
+  accent-color: var(--accent);
+}
+
+.sample-row,
+.controls,
+.meta-grid,
+.doc-foot {
+  display: grid;
+  gap: 10px;
+}
+
+.sample-row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 10px;
+}
+
+.ghost,
+.primary {
+  border-radius: 14px;
+  border: 1px solid transparent;
+  padding: 12px 14px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.ghost {
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--text);
+}
+
+.primary {
+  width: 100%;
+  margin-top: 10px;
+  background: linear-gradient(135deg, var(--accent), #7f3a21);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgba(157, 77, 46, 0.28);
+}
+
+.ghost:hover,
+.primary:hover {
+  transform: translateY(-1px);
+  border-color: rgba(43, 34, 24, 0.12);
+}
+
+.primary:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.hint {
+  margin: 10px 0 0;
+  font-size: 0.94rem;
+}
+
+.alert {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+.alert.error {
+  background: rgba(184, 33, 33, 0.08);
+  border: 1px solid rgba(184, 33, 33, 0.18);
+  color: #8d1e1e;
+}
+
+.results {
+  display: grid;
+  gap: 24px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.badge {
+  padding: 7px 11px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.badge.ok {
+  color: var(--good);
+  background: rgba(31, 122, 79, 0.12);
+}
+
+.badge.warn {
+  color: var(--warn);
+  background: rgba(184, 107, 0, 0.12);
+}
+
+.response-text {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.meta-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.meta-grid > div,
+.doc {
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(64, 48, 29, 0.08);
+}
+
+.meta-grid strong,
+.doc-top h3 {
+  display: block;
+  margin-top: 4px;
+}
+
+.doc-list {
+  display: grid;
+  gap: 12px;
+}
+
+.doc-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.doc-top h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.score {
+  min-width: 52px;
+  text-align: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(24, 78, 119, 0.12);
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
+.doc p {
+  margin: 10px 0 12px;
+}
+
+.doc-foot {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  font-size: 0.88rem;
+}
+
+.prompt-box pre {
+  white-space: pre-wrap;
+  background: rgba(255, 255, 255, 0.64);
+  border-radius: 16px;
+  padding: 14px;
+  margin: 8px 0 16px;
+  overflow-x: auto;
+}
+
+@media (max-width: 1060px) {
+  .hero,
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .composer {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .shell {
+    width: min(100vw - 20px, 1280px);
+    padding-top: 16px;
+  }
+
+  .hero-copy,
+  .hero-panel,
+  .card {
+    border-radius: 22px;
+  }
+
+  .sample-row,
+  .meta-grid,
+  .doc-foot {
+    grid-template-columns: 1fr;
+  }
+}
+
