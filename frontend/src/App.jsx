@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 const SAMPLE_COMPLAINTS = [
   { label: 'Damaged item', text: 'My product arrived damaged. Can I get a refund?' },
@@ -7,45 +7,82 @@ const SAMPLE_COMPLAINTS = [
 ];
 
 const DEFAULT_API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api';
+const DOCS_PER_PAGE = 3;
 
 function App() {
   const [complaint, setComplaint] = useState(SAMPLE_COMPLAINTS[0].text);
   const [mode, setMode] = useState('strict');
-  const [temperature, setTemperature] = useState(0.2);
-  const [maxTokens, setMaxTokens] = useState(150);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
+  const [backendStatus, setBackendStatus] = useState('checking...');
+  const [docPage, setDocPage] = useState(1);
+  const [includeMetrics, setIncludeMetrics] = useState(false);
 
-  const modeHint = useMemo(
-    () =>
-      mode === 'friendly'
-        ? 'Friendly mode keeps the answer warm and empathetic.'
-        : 'Strict mode keeps the reply concise and policy-bound.',
-    [mode]
-  );
+  const modeHint = useMemo(() => {
+    return mode === 'friendly'
+      ? 'Friendly mode keeps the reply warmer and more empathetic.'
+      : 'Strict mode keeps the reply concise and policy-bound.';
+  }, [mode]);
+
+  const pageState = useMemo(() => {
+    const docs = result?.retrieved_docs ?? [];
+    const totalPages = Math.max(1, Math.ceil(docs.length / DOCS_PER_PAGE));
+    const safePage = Math.min(docPage, totalPages);
+    const start = (safePage - 1) * DOCS_PER_PAGE;
+
+    return {
+      docs: docs.slice(start, start + DOCS_PER_PAGE),
+      totalDocs: docs.length,
+      totalPages,
+      safePage,
+    };
+  }, [docPage, result]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetch(`${DEFAULT_API_BASE}/health`, { signal: controller.signal })
+      .then((response) => response.json())
+      .then((data) => {
+        setBackendStatus(
+          `${data.status} | ${data.retrieval_backend} | rerank ${data.reranking_backend} | chunks ${data.chunk_size}/${data.chunk_overlap} | ${data.llm_provider}`
+        );
+      })
+      .catch(() => {
+        setBackendStatus('unreachable');
+      });
+
+    return () => controller.abort();
+  }, []);
 
   const useSample = (sample) => {
     setComplaint(sample);
     setResult(null);
     setError('');
+    setDocPage(1);
   };
 
   const submit = async (event) => {
     event.preventDefault();
     setLoading(true);
     setError('');
+    setResult(null);
+    setDocPage(1);
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 45000);
 
     try {
       const response = await fetch(`${DEFAULT_API_BASE}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           complaint,
           mode,
-          temperature,
-          max_tokens: maxTokens,
           top_k: 3,
+          include_metrics: includeMetrics,
         }),
       });
 
@@ -57,40 +94,39 @@ function App() {
       const data = await response.json();
       setResult(data);
     } catch (err) {
-      setError(err.message || 'Something went wrong');
+      if (err.name === 'AbortError') {
+        setError('Request timed out after 45 seconds. The backend may be waiting on OpenAI or Pinecone.');
+      } else {
+        setError(err.message || 'Something went wrong');
+      }
     } finally {
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
   };
 
   return (
     <div className="shell">
-      <div className="hero">
+      <header className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">BM25 + Sarvam AI</p>
-          <h1>AI-Assisted Customer Support Response Generator</h1>
-          <p className="lede">
-            Draft support replies from local policy documents with controlled prompts,
-            tone switching, and a built-in escalation fallback.
-          </p>
+          <p className="eyebrow">Support reply generator</p>
+          <h1>Generate customer support replies</h1>
+          <p className="lede">Use policy retrieval and tone modes to draft a response quickly.</p>
         </div>
+
         <div className="hero-panel">
           <div className="stat">
-            <span>Retrieval</span>
-            <strong>Top 3 policy matches</strong>
+            <span>Backend</span>
+            <strong>{backendStatus}</strong>
           </div>
           <div className="stat">
-            <span>Modes</span>
-            <strong>Strict or Friendly</strong>
-          </div>
-          <div className="stat">
-            <span>LLM</span>
-            <strong>Sarvam chat completions</strong>
+            <span>Mode</span>
+            <strong>{mode === 'friendly' ? 'Friendly' : 'Strict'}</strong>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="layout">
+      <main className="layout">
         <form className="composer card" onSubmit={submit}>
           <label>
             Customer complaint
@@ -124,28 +160,13 @@ function App() {
               </select>
             </label>
 
-            <label>
-              Temperature: <strong>{temperature.toFixed(1)}</strong>
+            <label className="toggle-row">
               <input
-                type="range"
-                min="0.1"
-                max="0.9"
-                step="0.1"
-                value={temperature}
-                onChange={(e) => setTemperature(Number(e.target.value))}
+                type="checkbox"
+                checked={includeMetrics}
+                onChange={(e) => setIncludeMetrics(e.target.checked)}
               />
-            </label>
-
-            <label>
-              Max tokens: <strong>{maxTokens}</strong>
-              <input
-                type="range"
-                min="100"
-                max="250"
-                step="10"
-                value={maxTokens}
-                onChange={(e) => setMaxTokens(Number(e.target.value))}
-              />
+              Include RAGAS metrics
             </label>
           </div>
 
@@ -172,29 +193,36 @@ function App() {
             {result ? (
               <>
                 <p className="response-text">{result.answer}</p>
-                <div className="meta-grid">
-                  <div>
-                    <span>Mode</span>
-                    <strong>{result.mode}</strong>
+                {result.raw_llm_response?.error ? (
+                  <div className="alert error">Backend error: {result.raw_llm_response.error}</div>
+                ) : null}
+                {result.ragas_metrics ? (
+                  <div className="metrics-panel">
+                    <div className="metric">
+                      <span>Faithfulness</span>
+                      <strong>{result.ragas_metrics.faithfulness?.toFixed?.(3) ?? 'n/a'}</strong>
+                    </div>
+                    <div className="metric">
+                      <span>Answer relevancy</span>
+                      <strong>{result.ragas_metrics.answer_relevancy?.toFixed?.(3) ?? 'n/a'}</strong>
+                    </div>
+                    <div className="metric">
+                      <span>Context precision</span>
+                      <strong>{result.ragas_metrics.context_precision?.toFixed?.(3) ?? 'n/a'}</strong>
+                    </div>
+                    <div className="metric">
+                      <span>Context utilization</span>
+                      <strong>{result.ragas_metrics.context_utilization?.toFixed?.(3) ?? 'n/a'}</strong>
+                    </div>
+                    <div className="metric">
+                      <span>Evaluator</span>
+                      <strong>{result.ragas_metrics.backend}</strong>
+                    </div>
                   </div>
-                  <div>
-                    <span>Temperature</span>
-                    <strong>{result.temperature}</strong>
-                  </div>
-                  <div>
-                    <span>Max tokens</span>
-                    <strong>{result.max_tokens}</strong>
-                  </div>
-                  <div>
-                    <span>LLM provider</span>
-                    <strong>{result.llm_provider}</strong>
-                  </div>
-                </div>
+                ) : null}
               </>
             ) : (
-              <p className="placeholder">
-                Your generated reply will appear here, along with the prompt mode used.
-              </p>
+              <p className="placeholder">Your generated reply will appear here.</p>
             )}
           </div>
 
@@ -202,49 +230,61 @@ function App() {
             <div className="section-header">
               <h2>Retrieved policy docs</h2>
               <span className="subtle">
-                {result ? `${result.retrieved_docs.length} documents` : 'Waiting for a query'}
+                {result ? `${pageState.totalDocs} documents` : 'Waiting for a query'}
               </span>
             </div>
 
-            {result?.retrieved_docs?.length ? (
-              <div className="doc-list">
-                {result.retrieved_docs.map((doc) => (
-                  <article key={doc.id} className="doc">
-                    <div className="doc-top">
-                      <h3>{doc.title}</h3>
-                      <span className="score">{doc.score.toFixed(2)}</span>
-                    </div>
-                    <p>{doc.company_response}</p>
-                    <div className="doc-foot">
-                      <span>{doc.category}</span>
-                      <span>{doc.solution}</span>
-                    </div>
-                  </article>
-                ))}
-              </div>
+            {pageState.docs.length ? (
+              <>
+                <div className="doc-list">
+                  {pageState.docs.map((doc) => (
+                    <article key={doc.id} className="doc">
+                      <div className="doc-top">
+                        <h3>{doc.title}</h3>
+                        <span className="score">{doc.score.toFixed(2)}</span>
+                      </div>
+                      <p className="subtle">
+                        Source {doc.source_id} - chunk {doc.chunk_index}/{doc.chunk_count}
+                      </p>
+                      <p>{doc.company_response}</p>
+                      <div className="doc-foot">
+                        <span>{doc.category}</span>
+                        <span>{doc.solution}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                {pageState.totalPages > 1 ? (
+                  <div className="pagination">
+                    <button
+                      type="button"
+                      className="ghost"
+                      onClick={() => setDocPage((page) => Math.max(1, page - 1))}
+                      disabled={pageState.safePage === 1}
+                    >
+                      Previous
+                    </button>
+                    <span className="page-indicator">
+                      Page {pageState.safePage} of {pageState.totalPages}
+                    </span>
+                    <button
+                      type="button"
+                      className="ghost"
+                      onClick={() => setDocPage((page) => Math.min(pageState.totalPages, page + 1))}
+                      disabled={pageState.safePage === pageState.totalPages}
+                    >
+                      Next
+                    </button>
+                  </div>
+                ) : null}
+              </>
             ) : (
               <p className="placeholder">Top matches from the local dataset will show up here.</p>
             )}
           </div>
-
-          <div className="card prompt-card">
-            <div className="section-header">
-              <h2>Prompt preview</h2>
-              <span className="subtle">Useful for the assignment write-up</span>
-            </div>
-            {result ? (
-              <div className="prompt-box">
-                <strong>System</strong>
-                <pre>{result.prompt.system}</pre>
-                <strong>User</strong>
-                <pre>{result.prompt.user}</pre>
-              </div>
-            ) : (
-              <p className="placeholder">The exact prompt used for generation will be shown here.</p>
-            )}
-          </div>
         </section>
-      </div>
+      </main>
     </div>
   );
 }

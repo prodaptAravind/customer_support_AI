@@ -6,7 +6,8 @@ from functools import lru_cache
 from pathlib import Path
 from zipfile import ZipFile
 
-from .models import PolicyDocument
+from .chunking import RecursiveTextChunker
+from .models import PolicyChunk, PolicyDocument
 
 NAMESPACE = {"a": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 
@@ -97,7 +98,38 @@ def load_policy_documents(dataset_path: Path) -> list[PolicyDocument]:
     return documents
 
 
+def load_policy_chunks(dataset_path: Path, chunk_size: int = 500, chunk_overlap: int = 80) -> list[PolicyChunk]:
+    documents = load_policy_documents(dataset_path)
+    chunker = RecursiveTextChunker(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    chunks: list[PolicyChunk] = []
+
+    for document in documents:
+        fragments = chunker.split_text(document.content) or [document.content]
+        fragment_count = len(fragments)
+        for chunk_index, fragment in enumerate(fragments, start=1):
+            chunks.append(
+                PolicyChunk(
+                    id=f"{document.id}-chunk-{chunk_index}",
+                    source_id=document.id,
+                    title=document.title,
+                    category=document.category,
+                    solution=document.solution,
+                    alternate_solution=document.alternate_solution,
+                    company_response=document.company_response,
+                    content=fragment,
+                    chunk_index=chunk_index,
+                    chunk_count=fragment_count,
+                )
+            )
+
+    return chunks
+
+
 @lru_cache(maxsize=1)
 def cached_policy_documents(dataset_path_str: str) -> tuple[PolicyDocument, ...]:
     return tuple(load_policy_documents(Path(dataset_path_str)))
 
+
+@lru_cache(maxsize=4)
+def cached_policy_chunks(dataset_path_str: str, chunk_size: int = 500, chunk_overlap: int = 80) -> tuple[PolicyChunk, ...]:
+    return tuple(load_policy_chunks(Path(dataset_path_str), chunk_size=chunk_size, chunk_overlap=chunk_overlap))

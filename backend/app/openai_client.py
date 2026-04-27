@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass
 from typing import Any
-
-import requests
 
 
 @dataclass(frozen=True)
@@ -14,38 +11,27 @@ class LLMResult:
     raw_response: dict[str, Any]
 
 
-class SarvamClient:
-    def __init__(self, api_key: str, base_url: str, model: str):
-        self.api_key = api_key
-        self.base_url = base_url.rstrip("/")
+class OpenAIClient:
+    def __init__(self, api_key: str, model: str):
+        from openai import OpenAI
+
+        self.client = OpenAI(api_key=api_key, timeout=10.0, max_retries=0)
         self.model = model
 
     @property
     def provider_name(self) -> str:
-        return "sarvam"
+        return "openai"
 
     def generate(self, messages: list[dict[str, str]], temperature: float, max_tokens: int) -> LLMResult:
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}",
-            "api-subscription-key": self.api_key,
-        }
-        response = requests.post(
-            f"{self.base_url}/v1/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=90,
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=temperature,
+            max_completion_tokens=max_tokens,
         )
-        response.raise_for_status()
-        data = response.json()
-        content = data["choices"][0]["message"]["content"].strip()
-        return LLMResult(content=content, raw_response=data)
+        choice = response.choices[0]
+        content = choice.message.content if choice.message and choice.message.content else ""
+        return LLMResult(content=content.strip(), raw_response=response.model_dump())
 
 
 class OfflineFallbackClient:

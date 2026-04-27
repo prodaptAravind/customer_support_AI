@@ -25,7 +25,8 @@ def format_context(docs: list[RetrievedDocument]) -> str:
     lines: list[str] = []
     for index, doc in enumerate(docs, start=1):
         lines.append(
-            f"[{index}] Title: {doc.title}\n"
+            f"[{index}] Title: {doc.title} (chunk {doc.chunk_index}/{doc.chunk_count})\n"
+            f"Source ID: {doc.source_id}\n"
             f"Category: {doc.category}\n"
             f"Policy: {doc.company_response}\n"
             f"Solution: {doc.solution}\n"
@@ -71,4 +72,3 @@ def fallback_prompt() -> PromptBundle:
         system="No relevant policy found.",
         user='Respond with: "Please escalate this issue to a human support agent."',
     )
-
